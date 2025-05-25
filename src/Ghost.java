@@ -54,7 +54,7 @@ public class Ghost implements Runnable {
     private void checkCollisionWithPlayers() {
         if ((x == player1.getX() && y == player1.getY()) ||
             (x == player2.getX() && y == player2.getY())) {
-            Server.ghostCaughtPlayer();
+            Server.endGame("CAUGHT_BY_GHOST");
         }
     }
 

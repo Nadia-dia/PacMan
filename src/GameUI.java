@@ -138,8 +138,10 @@ public class GameUI extends Pane {
 
         // Wyniki
         gc.setFont(Font.font("Arial", FontWeight.NORMAL, 24));
-        gc.fillText("Wynik Gracza 1: " + score1, width / 2 - 120, 270);
-        gc.fillText("Wynik Gracza 2: " + score2, width / 2 - 120, 310);
+        gc.fillText("Twoj wynik (Gracz " + playerNumber + "): " + (playerNumber == 1 ? score1:score2),
+                width / 2 - 130, 270);
+        gc.fillText("Wynik oponenta (Gracz " + (3-playerNumber) + "): " + (playerNumber == 1 ? score2:score1),
+                width / 2 - 160, 310);
 
         // Rezultat
         String result;
@@ -158,17 +160,17 @@ public class GameUI extends Pane {
 
         gc.setFont(Font.font("Arial", FontWeight.BOLD, 28));
         gc.setFill(resultColor);
-        gc.fillText(result, width / 2 - 80, 370);
+        gc.fillText(result, width / 2 - 70, 370);
 
         // Dodatkowy tekst z powodem zakończenia gry
-        gc.setFont(Font.font("Arial", FontWeight.NORMAL, 20));
+        gc.setFont(Font.font("Arial", FontWeight.NORMAL, 15));
         gc.setFill(Color.LIGHTGRAY);
         String reasonText = switch (reason) {
-            case "CAUGHT_BY_GHOST" -> "Zostałeś złapany przez ducha!";
-            case "ALL_POINTS_COLLECTED" -> "Zebrano wszystkie punkty!";
+            case "CAUGHT_BY_GHOST" -> "Gracz złapany przez ducha!";
+            case "ALL_POINTS_COLLECTED"-> "Zebrano wszystkie punkty!";
             default -> "Powód zakończenia: " + reason;
         };
-        gc.fillText(reasonText, width / 2 - 140, 410);
+        gc.fillText(reasonText, width / 2 - 150, 410);
     }
 
 	

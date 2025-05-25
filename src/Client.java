@@ -113,6 +113,7 @@ public class Client extends Application {
         String reason = parts[1];  // np. "CAUGHT_BY_GHOST" albo "ALL_POINTS_COLLECTED"
         int score1 = Integer.parseInt(parts[2]);
         int score2 = Integer.parseInt(parts[3]);
+        System.out.println(score1+ " / " + score2);
 
         System.out.println("Koniec gry, powód: " + reason);
 

@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.*;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Server {
     private static final int PORT = 12343;
@@ -9,22 +11,18 @@ public class Server {
     private static final int[][] MAP = GameMap.MAP;
 
     private static ServerSocket serverSocket;
-    private static Socket player1Socket, player2Socket;
-    private static PrintWriter player1Out, player2Out;
-    private static BufferedReader player1In, player2In;
 
-    private static Player player1 = new Player1("Gracz 1", 1, 1);
-    private static Player player2 = new Player2("Gracz 2", 23, 1);
     private static int[][] sharedMap = new int[MAP_HEIGHT][MAP_WIDTH];
-    
+    private static List<PlayerHandler> players = new ArrayList<>();
+
     private static Ghost ghost1;
     private static Ghost ghost2;
     private static Thread ghostThread1;
     private static Thread ghostThread2;
-    
 
-    
     static DatabaseManager dbManager = null;
+
+    private static volatile boolean gameOver = false;
     
     static {
         for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -46,31 +44,37 @@ public class Server {
                 return;
             }
 
-            // Połączenie gracza 1
-            player1Socket = serverSocket.accept();
-            System.out.println("Połączono Gracza 1");
-            player1In = new BufferedReader(new InputStreamReader(player1Socket.getInputStream()));
-            player1Out = new PrintWriter(player1Socket.getOutputStream(), true);
-            player1Out.println("PLAYER:1");
+            // Połączenie obu graczy
+            while(players.size() < 2) {
+                Socket playerSocket = serverSocket.accept();
+                BufferedReader playerIn = new BufferedReader(new InputStreamReader(playerSocket.getInputStream()));
+                PrintWriter playerOut = new PrintWriter(playerSocket.getOutputStream(), true);
 
-            // Połączenie gracza 2
-            player2Socket = serverSocket.accept();
-            System.out.println("Połączono Gracza 2");
-            player2In = new BufferedReader(new InputStreamReader(player2Socket.getInputStream()));
-            player2Out = new PrintWriter(player2Socket.getOutputStream(), true);
-            player2Out.println("PLAYER:2");
+                Player currentPlayer;
+                if(players.size() == 0){
+                    currentPlayer = new Player1("Gracz 1", 1, 1);
+                    playerOut.println("PLAYER:1");
+                } else {
+                    currentPlayer = new Player2("Gracz 2", 23, 1);
+                    playerOut.println("PLAYER:2");
+                }
+                players.add(new PlayerHandler(playerSocket, playerIn, playerOut, currentPlayer));
+                System.out.println("Połączono Gracza " + players.size());
+            }
 
-            // Wątki dla graczy
-            Thread player1Thread = new Thread(new PlayerHandler(player1Socket, player1In, player1Out, player1));
-            Thread player2Thread = new Thread(new PlayerHandler(player2Socket, player2In, player2Out, player2));
+            // Wątki dla graczy - stworzenie i uruchomienie
+            Thread player1Thread = new Thread(players.getFirst());
+            Thread player2Thread = new Thread(players.getLast());
+            player1Thread.start();
+            player2Thread.start();
 
-         // Znajdź pozycje duchów na mapie (wartość 3)
+            // Znajdź pozycje duchów na mapie (wartość 3)
             int ghost1X = 1, ghost1Y = 16;
             int ghost2X = 23, ghost2Y = 16;
 
             // Stwórz duchy
-            ghost1 = new Ghost(ghost1X, ghost1Y, sharedMap, player1, player2);
-            ghost2 = new Ghost(ghost2X, ghost2Y, sharedMap, player1, player2);
+            ghost1 = new Ghost(ghost1X, ghost1Y, sharedMap, players.get(0).player, players.get(1).player);
+            ghost2 = new Ghost(ghost2X, ghost2Y, sharedMap, players.get(0).player, players.get(1).player);
 
             // Uruchom wątki duchów
             ghostThread1 = new Thread(ghost1);
@@ -79,9 +83,7 @@ public class Server {
             ghostThread1.start();
             ghostThread2.start();
 
-            player1Thread.start();
-            player2Thread.start();
-
+            // Oczekiwanie, gdzy graczy skoncza
             player1Thread.join();
             player2Thread.join();
 
@@ -89,8 +91,9 @@ public class Server {
             e.printStackTrace();
         } finally {
             try {
-                if (player1Socket != null) player1Socket.close();
-                if (player2Socket != null) player2Socket.close();
+                for(PlayerHandler player: players){
+                    if(player.playerSocket != null) player.playerSocket.close();
+                }
                 if (serverSocket != null) serverSocket.close();
                 if (dbManager != null) dbManager.close();
                 if (ghost1 != null) ghost1.stop();
@@ -103,25 +106,36 @@ public class Server {
             }
         }
     }
-    
-    public static void ghostCaughtPlayer() {
-        System.out.println("Koniec gry: duch złapał gracza!");
-        // Wypchnij wiadomość do obu graczy i zakończ wszystko (analogicznie jak w endGame)
-        String endMessage = "END:CAUGHT_BY_GHOST:" + player1.getScore() + ":" + player2.getScore();
-        player1Out.println(endMessage);
-        player2Out.println(endMessage);
+
+    public static synchronized void endGame(String reason) {
+        System.out.println("DEBUG: Wywołano endGame z powodem: " + reason);
+        if (gameOver) return; // już zakończono
+
+        gameOver = true;
+
+        Player player1 = players.get(0).player;
+        Player player2 = players.get(1).player;
+        String endMessage = "END:" + reason + ":" + player1.getScore() + ":" + player2.getScore();
+        System.out.println(endMessage);
+        for(PlayerHandler player: players){
+            player.playerOut.println(endMessage);
+        }
+
+        System.out.println("Gra zakończona powodem: " + reason);
 
         try {
-            if (player1Socket != null) player1Socket.close();
-            if (player2Socket != null) player2Socket.close();
+            if (dbManager != null) dbManager.saveResult(player1.getName(), player1.getScore(), player2.getName(),
+                    player2.getScore());
+            for(PlayerHandler player: players){
+                if(player.playerSocket != null) player.playerSocket.close();
+            }
             if (serverSocket != null) serverSocket.close();
-            if (dbManager != null) dbManager.saveResult(player1.getName(), player1.getScore(), player2.getName(), player2.getScore());
             if (dbManager != null) dbManager.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        System.exit(0);  // wyłącz serwer lub zatrzymaj wątki
+        //System.exit(0);  // wyłącz serwer lub zatrzymaj wątki
     }
 
     private static class PlayerHandler implements Runnable {
@@ -130,7 +144,6 @@ public class Server {
         private PrintWriter playerOut;
         private Player player;
 
-        private volatile boolean gameOver = false;
 
         public PlayerHandler(Socket playerSocket, BufferedReader playerIn, PrintWriter playerOut, Player player) {
             this.playerSocket = playerSocket;
@@ -212,24 +225,9 @@ public class Server {
             }
         }
 
-        private synchronized void endGame(String reason) {
-            if (gameOver) return; // już zakończono
-
-            gameOver = true;
-
-            String endMessage = "END:" + reason + ":" + player1.getScore() + ":" + player2.getScore();
-            player1Out.println(endMessage);
-            player2Out.println(endMessage);
-
-            System.out.println("Gra zakończona powodem: " + reason);
-
-            // Zapisz wynik tylko raz, przy graczu 1
-            if (player.getName().equals("Gracz 1")) {
-    	        dbManager.saveResult(player1.getName(), player1.getScore(), player2.getName(), player2.getScore());
-    	    }
-        }
-
         private synchronized String getGameState() {
+            Player player1 = players.get(0).player;
+            Player player2 = players.get(1).player;
             StringBuilder sb = new StringBuilder();
             sb.append("Player1:(").append(player1.getX()).append(",").append(player1.getY()).append(");");
             sb.append("Player2:(").append(player2.getX()).append(",").append(player2.getY()).append(");");
