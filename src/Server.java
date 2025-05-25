@@ -3,6 +3,7 @@ import java.net.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class Server {
     private static final int PORT = 12343;
@@ -65,8 +66,6 @@ public class Server {
             // Wątki dla graczy - stworzenie i uruchomienie
             Thread player1Thread = new Thread(players.getFirst());
             Thread player2Thread = new Thread(players.getLast());
-            player1Thread.start();
-            player2Thread.start();
 
             // Znajdź pozycje duchów na mapie (wartość 3)
             int ghost1X = 1, ghost1Y = 16;
@@ -82,6 +81,8 @@ public class Server {
 
             ghostThread1.start();
             ghostThread2.start();
+            player1Thread.start();
+            player2Thread.start();
 
             // Oczekiwanie, gdzy graczy skoncza
             player1Thread.join();
