@@ -16,18 +16,18 @@ public class GameUI extends Pane {
     private Image player2Image;
 
 
-    public GameUI(GraphicsContext gc) {
+    public GameUI(GraphicsContext gc, int[][] map) {
         this.gc = gc;
         this.ghostImage = new Image(getClass().getResourceAsStream("/images/ghost.png")); // wczytaj obrazek
         player1Image = new Image(getClass().getResourceAsStream("/images/player1.png"));
         player2Image = new Image(getClass().getResourceAsStream("/images/player2.png"));
 
-        initializeMap();
+        initializeMap(map);
     }
 
     // Metoda inicjalizująca mapę i początkowe pozycje graczy
-    public void initializeMap() {
-        drawMap(gc);
+    public void initializeMap(int[][] map) {
+        drawMap(map);
 
         // Domyślne pozycje początkowe graczy
         updatePlayerPosition(1, 1, Color.BLUE);   // Pierwszy gracz na pozycji (1,1)

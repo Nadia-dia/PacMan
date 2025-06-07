@@ -53,6 +53,12 @@ public class Server {
 
             while (players.size() < 2) {
                 Socket playerSocket = serverSocket.accept();
+
+                // przeslanie poczatkowej mapy - serializacja
+                ObjectOutputStream outObject = new ObjectOutputStream(playerSocket.getOutputStream());
+                outObject.writeObject(sharedMap);
+                outObject.flush();
+
                 BufferedReader playerIn = new BufferedReader(new InputStreamReader(playerSocket.getInputStream()));
                 PrintWriter playerOut = new PrintWriter(playerSocket.getOutputStream(), true);
 

@@ -27,6 +27,7 @@ public class Client extends Application {
     private static final int MAP_WIDTH = 25;
     private static final int MAP_HEIGHT = 18;
 
+    private ObjectInputStream inObject;//-----------------------------------------------
     private PrintWriter out;
     private BufferedReader in;
     private int playerNumber = 0;
@@ -55,8 +56,13 @@ public class Client extends Application {
         // Połączenie z serwerem
         loadConfig();
 
+        int[][] map;
         try {
             socket = new Socket(HOST, PORT);
+            // Pobranie poczatkowej mapy - deserializacja
+            ObjectInputStream objIn = new ObjectInputStream(socket.getInputStream());
+            map = (int[][]) objIn.readObject();
+
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } catch (IOException e) {
@@ -91,7 +97,7 @@ public class Client extends Application {
         // Przygotowanie GUI
         canvas = new Canvas(TILE_SIZE * MAP_WIDTH, TILE_SIZE * MAP_HEIGHT);
         gc = canvas.getGraphicsContext2D();
-        gameUI = new GameUI(gc);
+        gameUI = new GameUI(gc,map);
 
         Pane root = new Pane();
         root.getChildren().add(canvas);
