@@ -1,5 +1,4 @@
 package application;
-
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -7,13 +6,22 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import javafx.scene.text.Font;
+
 
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Properties;
+
 
 public class Client extends Application {
+    private static String HOST;
+    private static int PORT;
+    private Socket socket;
+    private volatile boolean running = true;
 
     private static final int TILE_SIZE = 32;
     private static final int MAP_WIDTH = 25;
@@ -28,17 +36,35 @@ public class Client extends Application {
 
     private static Ghost ghost1;
     private static Ghost ghost2;
-    
+
     private GameUI gameUI;
     private Canvas canvas;
     private GraphicsContext gc;
 
+    private GameStateListener gameStateListener = new GameStateListener() {
+        @Override
+        public void onGameStateReceived(String state) {
+            Platform.runLater(() -> {
+                parseGameState(state);
+            });
+        }
+    };
+
     @Override
     public void start(Stage primaryStage) throws Exception {
         // Połączenie z serwerem
-        Socket socket = new Socket("localhost", 12343);
-        out = new PrintWriter(socket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        loadConfig();
+
+        try {
+            socket = new Socket(HOST, PORT);
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        } catch (IOException e) {
+            System.err.println("Nie udało się nawiązać połączenia z " + HOST + " na porcie " + PORT);
+            e.printStackTrace();
+            Platform.exit();
+            return;
+        }
 
         // Odczytanie numeru gracza
         String firstMessage = in.readLine();
@@ -56,7 +82,7 @@ public class Client extends Application {
             player = new Player2("Gracz 2", 23, 1);
             opponent = new Player1("Gracz 1", 1, 1);
         }
-        
+
         int ghost1X = 1, ghost1Y = 16;
         int ghost2X = 23, ghost2Y = 16;
         ghost1 = new Ghost(ghost1X, ghost1Y, GameMap.MAP, player, opponent);
@@ -76,7 +102,7 @@ public class Client extends Application {
             String direction = player.getDirectionFromKey(event.getCode());
             if (direction != null) {
                 out.println(direction);
-                System.out.println("Wysłano ruch: " + direction);
+                //System.out.println("Wysłano ruch: " + direction);
             }
         });
 
@@ -84,28 +110,65 @@ public class Client extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        // Wątek do odbierania stanu gry
+        primaryStage.setOnCloseRequest(event -> {
+            running = false;
+            try {
+                out.println("DISCONNECT");
+                out.flush();
+                in.close();
+                out.close();
+                socket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                System.exit(0);
+            }
+        });
+
         new Thread(() -> {
             try {
-                while (true) {
+                while (running) {
                     String state = in.readLine();
-                    if (state != null) {
-                        if (state.startsWith("END:")) {
-                            handleGameEnd(state);
-                            break;
-                        } else {
-                            parseGameState(state);
-                        }
+                    if (state == null) {
+                        System.out.println("Serwer rozłączył połączenie.");
+                        break;
+                    }
+                    if (state.startsWith("END:")) {
+                        handleGameEnd(state);
+                        break;
+                    } else {
+                        // 3. Wywołanie metody z interfejsu zamiast bezpośrednio parseGameState
+                        gameStateListener.onGameStateReceived(state);
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                if (running) {
+                    e.printStackTrace();
+                }
             }
         }).start();
 
     }
-    
-    
+
+    private static void loadConfig() {
+        Properties props = new Properties();
+        try (InputStream input = Client.class.getClassLoader().getResourceAsStream("config.txt")) {
+            if (input == null) {
+                System.err.println("Plik config.txt nie został znaleziony.");
+                HOST = "localhost";
+                PORT = 1234;
+                return;
+            }
+            props.load(input);
+            HOST = props.getProperty("host", "localhost");
+            PORT = Integer.parseInt(props.getProperty("port", "1234"));
+        } catch (IOException e) {
+            System.err.println("Błąd ładowania config.txt Używam domyślnych wartości.");
+            HOST = "localhost";
+            PORT = 1234;
+        }
+    }
+
     private void handleGameEnd(String message) {
         String[] parts = message.split(":");
 
@@ -131,7 +194,7 @@ public class Client extends Application {
             String[] parts = state.split(";");
             for (String part : parts) {
                 part = part.trim();
-                if (part.startsWith("application.Player1:")) {
+                if (part.startsWith("Player1:")) {
                     String coordsPart = part.split("\\(")[1].split("\\)")[0];
                     String[] coords = coordsPart.split(",");
                     int x = Integer.parseInt(coords[0].trim());
@@ -145,7 +208,7 @@ public class Client extends Application {
                         opponent.setY(y);
                     }
 
-                } else if (part.startsWith("application.Player2:")) {
+                } else if (part.startsWith("Player2:")) {
                     String coordsPart = part.split("\\(")[1].split("\\)")[0];
                     String[] coords = coordsPart.split(",");
                     int x = Integer.parseInt(coords[0].trim());
@@ -205,7 +268,7 @@ public class Client extends Application {
             // Rysujemy graczy
             gameUI.updatePlayerPosition(player.getX(), player.getY(), (playerNumber == 1) ? Color.BLUE : Color.RED);
             gameUI.updatePlayerPosition(opponent.getX(), opponent.getY(), (playerNumber == 1) ? Color.RED : Color.BLUE);
-            
+
             gameUI.updateGhostPosition(ghost1.getX(), ghost1.getY());
             gameUI.updateGhostPosition(ghost2.getX(), ghost2.getY());
         });

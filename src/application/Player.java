@@ -1,11 +1,10 @@
 package application;
-
 import javafx.scene.input.KeyCode;
 
 public abstract class Player {
     protected String name;
     protected int x, y;
-    protected int score; 
+    protected int score;
 
     public Player(String name, int x, int y) {
         this.name = name;
@@ -16,7 +15,7 @@ public abstract class Player {
 
     public abstract String getDirectionFromKey(KeyCode key);
 
-    public String getName() {  
+    public String getName() {
         return name;
     }
 

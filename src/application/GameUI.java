@@ -1,17 +1,27 @@
 package application;
-
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.FillRule;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.image.Image;
+
 
 public class GameUI extends Pane {
 
     private GraphicsContext gc;
+    private Image ghostImage;
+    private Image player1Image;
+    private Image player2Image;
+
 
     public GameUI(GraphicsContext gc) {
         this.gc = gc;
+        this.ghostImage = new Image(getClass().getResourceAsStream("/images/ghost.png")); // wczytaj obrazek
+        player1Image = new Image(getClass().getResourceAsStream("/images/player1.png"));
+        player2Image = new Image(getClass().getResourceAsStream("/images/player2.png"));
+
         initializeMap();
     }
 
@@ -57,18 +67,18 @@ public class GameUI extends Pane {
                 if (tile == 2) { // Punkt do zebrania (kropka)
                     gc.setFill(Color.DARKSALMON);
                     gc.fillOval(
-                        x * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2 - 3, // X-koordynata kropki (w centrum)
-                        y * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2 - 3, // Y-koordynata kropki (w centrum)
-                        6, 6); // Rozmiar kropki (średnica 6)
+                            x * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2 - 3, // X-koordynata kropki (w centrum)
+                            y * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2 - 3, // Y-koordynata kropki (w centrum)
+                            6, 6); // Rozmiar kropki (średnica 6)
                 }
             }
         }
     }
-    
+
     public void drawMap(int[][] map) {
         // Wyczyszczenie płótna
         gc.clearRect(0, 0, gc.getCanvas().getWidth(), gc.getCanvas().getHeight());
-     
+
         for (int y = 0; y < map.length; y++) {
             for (int x = 0; x < map[0].length; x++) {
                 if (map[y][x] == 1) {
@@ -81,9 +91,9 @@ public class GameUI extends Pane {
                 if (map[y][x] == 2) {
                     gc.setFill(Color.DARKSALMON);
                     gc.fillOval(
-                        x * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2 - 3,
-                        y * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2 - 3,
-                        6, 6
+                            x * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2 - 3,
+                            y * GameMap.TILE_SIZE + GameMap.TILE_SIZE / 2 - 3,
+                            6, 6
                     );
                 }
             }
@@ -93,29 +103,30 @@ public class GameUI extends Pane {
 
     // Metoda do aktualizacji pozycji gracza
     public void updatePlayerPosition(int playerX, int playerY, Color color) {
-        //System.out.println("Rysowanie gracza na pozycji X: " + playerX + ", Y: " + playerY);
+        Image playerImage = (color == Color.BLUE) ? player1Image : player2Image;
 
-        // Rysowanie gracza z małym wcięciem
-        gc.setFill(color);
-        gc.fillOval(
-            playerX * GameMap.TILE_SIZE + 2,
-            playerY * GameMap.TILE_SIZE + 2,
-            GameMap.TILE_SIZE - 4,
-            GameMap.TILE_SIZE - 4
+        gc.drawImage(
+                playerImage,
+                playerX * GameMap.TILE_SIZE,
+                playerY * GameMap.TILE_SIZE,
+                GameMap.TILE_SIZE,
+                GameMap.TILE_SIZE
         );
     }
-    
+
+
     public void updateGhostPosition(int x, int y) {
-        gc.setFill(Color.CRIMSON);
-        gc.fillRect(
-            x * GameMap.TILE_SIZE + 2,
-            y * GameMap.TILE_SIZE + 2,
-            GameMap.TILE_SIZE - 4,
-            GameMap.TILE_SIZE - 4
+        gc.drawImage(
+                ghostImage,
+                x * GameMap.TILE_SIZE,
+                y * GameMap.TILE_SIZE,
+                GameMap.TILE_SIZE,
+                GameMap.TILE_SIZE
         );
     }
 
-    
+
+
     public void handleGameEnd(int playerNumber, int score1, int score2, String reason) {
         double width = gc.getCanvas().getWidth();
         double height = gc.getCanvas().getHeight();
@@ -174,6 +185,6 @@ public class GameUI extends Pane {
         gc.fillText(reasonText, width / 2 - 150, 410);
     }
 
-	
-    
+
+
 }
