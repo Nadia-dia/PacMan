@@ -1,3 +1,5 @@
+package application;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -5,10 +7,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
-import javafx.scene.text.Font;
-
 
 
 import java.io.*;
@@ -132,7 +131,7 @@ public class Client extends Application {
             String[] parts = state.split(";");
             for (String part : parts) {
                 part = part.trim();
-                if (part.startsWith("Player1:")) {
+                if (part.startsWith("application.Player1:")) {
                     String coordsPart = part.split("\\(")[1].split("\\)")[0];
                     String[] coords = coordsPart.split(",");
                     int x = Integer.parseInt(coords[0].trim());
@@ -146,7 +145,7 @@ public class Client extends Application {
                         opponent.setY(y);
                     }
 
-                } else if (part.startsWith("Player2:")) {
+                } else if (part.startsWith("application.Player2:")) {
                     String coordsPart = part.split("\\(")[1].split("\\)")[0];
                     String[] coords = coordsPart.split(",");
                     int x = Integer.parseInt(coords[0].trim());

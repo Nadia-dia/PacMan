@@ -1,3 +1,5 @@
+package application;
+
 import javafx.scene.input.KeyCode;
 
 public class Player2 extends Player {

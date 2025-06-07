@@ -1,9 +1,10 @@
+package application;
+
 import java.io.*;
 import java.net.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 public class Server {
     private static final int PORT = 12343;
@@ -230,8 +231,8 @@ public class Server {
             Player player1 = players.get(0).player;
             Player player2 = players.get(1).player;
             StringBuilder sb = new StringBuilder();
-            sb.append("Player1:(").append(player1.getX()).append(",").append(player1.getY()).append(");");
-            sb.append("Player2:(").append(player2.getX()).append(",").append(player2.getY()).append(");");
+            sb.append("application.Player1:(").append(player1.getX()).append(",").append(player1.getY()).append(");");
+            sb.append("application.Player2:(").append(player2.getX()).append(",").append(player2.getY()).append(");");
             sb.append("Score1:").append(player1.getScore()).append(";");
             sb.append("Score2:").append(player2.getScore()).append(";");
             sb.append("Ghost1:(").append(ghost1.getX()).append(",").append(ghost1.getY()).append(");");

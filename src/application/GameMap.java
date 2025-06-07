@@ -1,3 +1,5 @@
+package application;
+
 public class GameMap {
 	
     public static final int TILE_SIZE = 32;
