@@ -34,6 +34,7 @@ public class Server {
 
     public static void main(String[] args) {
         try {
+            FileLogger logger=new FileLogger("application.log");
             loadConfig();
 
             chooseRandomMap();
@@ -44,9 +45,11 @@ public class Server {
 
             serverSocket = new ServerSocket(PORT);
             System.out.println("Serwer nasłuchuje na porcie " + PORT);
+            logger.log("Uruchominono serwer, nasłuchuje na porcie " + PORT + ".");
 
             dbManager = new DatabaseManager();
             System.out.println("Połączono z bazą danych.");
+            logger.log("Połączono z bazą danych.");
 
             while (players.size() < 2) {
                 Socket playerSocket = serverSocket.accept();
@@ -64,6 +67,7 @@ public class Server {
 
                 players.add(new PlayerHandler(playerSocket, playerIn, playerOut, currentPlayer));
                 System.out.println("Połączono Gracza " + players.size());
+                logger.log("Połączono Gracza " + players.size());
             }
 
             // Tworzymy executor dla 4 wątków: 2 graczy i 2 duchy
@@ -81,9 +85,11 @@ public class Server {
 
             // Czekamy aż zadania się zakończą (np. gra się zakończy)
             executor.shutdown();
+            logger.log("Zakończenie zadań.");
             // Czekamy maksymalnie 10 minut na zakończenie wszystkich wątków
             if (!executor.awaitTermination(10, TimeUnit.MINUTES)) {
                 System.out.println("Zakończenie zadań zajęło zbyt długo, wymuszam shutdown.");
+                logger.log("Zakończenie zadań zajęło zbyt długo, wymuszam shutdown.");
                 executor.shutdownNow();
             }
 
@@ -91,6 +97,7 @@ public class Server {
             e.printStackTrace();
         } finally {
             shutdown();
+            System.out.println("Zamknięto zasoby serwera.");
         }
     }
 
